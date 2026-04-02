@@ -38,6 +38,11 @@ def main() -> None:
         "input", help="path to the input audio file (wav, m4a, mp3, flac, ogg, aac)"
     )
     parser.add_argument("output", help="path for the enhanced output .wav file")
+    parser.add_argument(
+        "--profile", "-p",
+        help="voice profile name (created via tuner UI)",
+        default=None,
+    )
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     signal.signal(signal.SIGINT, _handle_signal)
@@ -84,7 +89,7 @@ def main() -> None:
         else:
             processing_input = args.input
 
-        process_audio(processing_input, args.output)
+        process_audio(processing_input, args.output, profile=args.profile)
 
         waveform, sample_rate = torchaudio.load(args.output)
         duration_seconds = waveform.shape[-1] / sample_rate

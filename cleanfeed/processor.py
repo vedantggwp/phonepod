@@ -10,16 +10,26 @@ import torch
 import torchaudio
 
 from .engine import Engine
+from .profile import Profile
 
 logger = logging.getLogger(__name__)
 
 _ENGINE: Engine | None = None
 
 
-def _get_engine() -> Engine:
+def _get_engine(profile: str | None = None) -> Engine:
     global _ENGINE
     if _ENGINE is None:
-        _ENGINE = Engine()
+        params = None
+        if profile:
+            p = Profile.load_by_name(profile)
+            params = p.params
+            logger.info("Using profile: %s", profile)
+        _ENGINE = Engine(params=params)
+    elif profile:
+        p = Profile.load_by_name(profile)
+        _ENGINE.set_params(p.params)
+        logger.info("Switched to profile: %s", profile)
     return _ENGINE
 
 
@@ -33,12 +43,13 @@ def shutdown_engine() -> None:
         logger.info("Engine unloaded and MPS cache cleared.")
 
 
-def process_audio(input_path: str, output_path: str) -> None:
+def process_audio(input_path: str, output_path: str, profile: str | None = None) -> None:
     """Load audio file, enhance it, and save the result.
 
     Args:
         input_path: Path to input audio file (WAV format).
         output_path: Path for enhanced output WAV file.
+        profile: Optional profile name for mastering settings.
     """
     logger.info("Loading audio from %s", input_path)
     wav, sample_rate = torchaudio.load(input_path)
@@ -55,7 +66,7 @@ def process_audio(input_path: str, output_path: str) -> None:
         mono.numel() / sample_rate,
     )
 
-    engine = _get_engine()
+    engine = _get_engine(profile=profile)
     enhanced, output_sr = engine.enhance(mono, sample_rate)
 
     if enhanced.ndim != 1:

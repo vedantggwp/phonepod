@@ -16,20 +16,25 @@ from . import _compat as _compat  # noqa: F401
 
 from .engine import Engine, OUTPUT_SR
 from .processor import process_audio, shutdown_engine
+from .profile import MasteringParams, Profile, params_from_semantic
 
 __version__ = "0.1.0"
-__all__ = ["Engine", "enhance", "process_audio", "shutdown_engine", "OUTPUT_SR"]
+__all__ = [
+    "Engine", "enhance", "process_audio", "shutdown_engine",
+    "OUTPUT_SR", "MasteringParams", "Profile", "params_from_semantic",
+]
 
 
-def enhance(input_path: str, output_path: str) -> str:
+def enhance(input_path: str, output_path: str, profile: str | None = None) -> str:
     """Enhance an audio file. The simplest way to use cleanfeed.
 
     Args:
         input_path: Path to input audio file (WAV, M4A, MP3, FLAC, OGG, AAC).
         output_path: Path for enhanced output WAV file.
+        profile: Optional profile name (saved via tuner UI).
 
     Returns:
         The output_path, for chaining.
     """
-    process_audio(input_path, output_path)
+    process_audio(input_path, output_path, profile=profile)
     return output_path

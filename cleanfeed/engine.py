@@ -22,17 +22,34 @@ from pedalboard import (
     Pedalboard,
 )
 
+from .profile import MasteringParams
+
 logger = logging.getLogger(__name__)
 
 OUTPUT_SR = 48000
-LUFS_TARGET = -18.0
-LIMITER_CEILING_DB = -1.5
+
+
+def _build_mastering_chain(p: MasteringParams) -> tuple[Pedalboard, Pedalboard]:
+    """Build mastering + limiter chains from parameters. Cheap to call."""
+    mastering = Pedalboard([
+        HighpassFilter(cutoff_frequency_hz=p.hpf_cutoff_hz),
+        PeakFilter(cutoff_frequency_hz=p.low_mid_freq_hz, gain_db=p.low_mid_gain_db, q=p.low_mid_q),
+        Compressor(threshold_db=p.comp1_threshold_db, ratio=p.comp1_ratio, attack_ms=p.comp1_attack_ms, release_ms=p.comp1_release_ms),
+        Compressor(threshold_db=p.comp2_threshold_db, ratio=p.comp2_ratio, attack_ms=p.comp2_attack_ms, release_ms=p.comp2_release_ms),
+        PeakFilter(cutoff_frequency_hz=p.deess_freq_hz, gain_db=p.deess_gain_db, q=p.deess_q),
+        PeakFilter(cutoff_frequency_hz=p.presence_freq_hz, gain_db=p.presence_gain_db, q=p.presence_q),
+        HighShelfFilter(cutoff_frequency_hz=p.air_freq_hz, gain_db=p.air_gain_db, q=p.air_q),
+    ])
+    limiter = Pedalboard([Limiter(threshold_db=p.limiter_ceiling_db)])
+    return mastering, limiter
 
 
 class Engine:
     """5-stage pipeline: DeepFilterNet → MossFormer2 → Pedalboard DSP → LUFS → Limiter."""
 
-    def __init__(self) -> None:
+    def __init__(self, params: MasteringParams | None = None) -> None:
+        self._params = params or MasteringParams()
+
         logger.info("Loading DeepFilterNet3...")
         self._df_model, self._df_state, _ = init_df()
         self._df_sr = self._df_state.sr()
@@ -45,19 +62,18 @@ class Engine:
         )
         logger.info("MossFormer2_SE_48K loaded")
 
-        self._mastering = Pedalboard(
-            [
-                HighpassFilter(cutoff_frequency_hz=80),
-                PeakFilter(cutoff_frequency_hz=300, gain_db=-3.0, q=1.0),
-                Compressor(threshold_db=-20, ratio=2.0, attack_ms=15, release_ms=100),
-                Compressor(threshold_db=-15, ratio=3.0, attack_ms=10, release_ms=80),
-                PeakFilter(cutoff_frequency_hz=6000, gain_db=-4.0, q=2.0),
-                PeakFilter(cutoff_frequency_hz=3000, gain_db=2.5, q=0.8),
-                HighShelfFilter(cutoff_frequency_hz=10000, gain_db=2.0, q=0.7),
-            ]
-        )
-        self._limiter = Pedalboard([Limiter(threshold_db=LIMITER_CEILING_DB)])
+        self._mastering, self._limiter = _build_mastering_chain(self._params)
         logger.info("Mastering chain ready")
+
+    @property
+    def params(self) -> MasteringParams:
+        return self._params
+
+    def set_params(self, params: MasteringParams) -> None:
+        """Swap mastering parameters without reloading ML models."""
+        self._params = params
+        self._mastering, self._limiter = _build_mastering_chain(params)
+        logger.info("Mastering chain rebuilt with new parameters")
 
     def enhance(self, audio_tensor: torch.Tensor, sample_rate: int) -> tuple[torch.Tensor, int]:
         """Run the full enhancement pipeline.
@@ -114,16 +130,46 @@ class Engine:
         mono = np.ascontiguousarray(mastered[0].astype(np.float64, copy=False))
         meter = pyln.Meter(OUTPUT_SR)
         loudness = meter.integrated_loudness(mono)
+        target = self._params.lufs_target
         if np.isfinite(loudness):
-            normalized = pyln.normalize.loudness(mono, loudness, LUFS_TARGET).astype(np.float32)
-            logger.info("Stage 4 complete: LUFS %.1f → %.1f", loudness, LUFS_TARGET)
+            normalized = pyln.normalize.loudness(mono, loudness, target).astype(np.float32)
+            logger.info("Stage 4 complete: LUFS %.1f → %.1f", loudness, target)
         else:
             logger.warning("LUFS non-finite (%.2f), skipping normalization", loudness)
             normalized = mono.astype(np.float32)
 
         # --- Stage 5: Brick-wall limiter ---
         limited = self._limiter(normalized[np.newaxis, :], sample_rate=OUTPUT_SR, reset=True)
-        logger.info("Stage 5 complete: Limiter at %.1f dB", LIMITER_CEILING_DB)
+        logger.info("Stage 5 complete: Limiter at %.1f dB", self._params.limiter_ceiling_db)
 
         result = torch.from_numpy(np.ascontiguousarray(limited[0]))
         return result, OUTPUT_SR
+
+    def master_only(self, enhanced_np: np.ndarray) -> np.ndarray:
+        """Run only stages 3-5 (mastering + LUFS + limiter) on pre-denoised audio.
+
+        Used by the tuning UI to preview mastering changes instantly
+        without re-running the slow ML inference stages.
+
+        Args:
+            enhanced_np: 1D float32 numpy array at 48kHz (output of stages 1+2).
+
+        Returns:
+            Mastered 1D float32 numpy array at 48kHz.
+        """
+        if enhanced_np.ndim == 1:
+            enhanced_np = enhanced_np[np.newaxis, :]
+
+        mastered = self._mastering(enhanced_np, sample_rate=OUTPUT_SR, reset=True)
+
+        mono = np.ascontiguousarray(mastered[0].astype(np.float64, copy=False))
+        meter = pyln.Meter(OUTPUT_SR)
+        loudness = meter.integrated_loudness(mono)
+        target = self._params.lufs_target
+        if np.isfinite(loudness):
+            normalized = pyln.normalize.loudness(mono, loudness, target).astype(np.float32)
+        else:
+            normalized = mono.astype(np.float32)
+
+        limited = self._limiter(normalized[np.newaxis, :], sample_rate=OUTPUT_SR, reset=True)
+        return np.ascontiguousarray(limited[0])
