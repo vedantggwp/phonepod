@@ -37,6 +37,11 @@
 - `benchmark_clearvoice_numpy.py` — ClearVoice file I/O vs numpy mode comparison
 - `benchmark_pipeline.py` — Full pipeline A/B: DeepFilterNet3 vs DPDFNet-2 48kHz
 
+## Tuner UI
+- `tuner_minimal.py` — Voice tuner Gradio app with custom CleanfeedTheme, semantic sliders, preset save/load
+- `.impeccable.md` — Design context: users, brand personality, aesthetic direction, design principles
+- `cleanfeed/profile.py` — MasteringParams dataclass, Profile save/load, params_from_semantic()
+
 ## Planning & Documentation
 - `TODOS.md` — Full task list: Sprints 1-5, dependency graph, research findings
 - `docs/system-architecture.html` — Visual system architecture (open in browser)
@@ -57,3 +62,6 @@
 - 2026-04-01: Updated `engine.py` — removed temp file I/O, uses ClearVoice numpy mode with torch.no_grad()
 - 2026-04-01: Created `docs/benchmarks.md` — full decision record with timing data
 - 2026-04-01: Sprint 2 — restructured into `cleanfeed/` package, public API, pyproject.toml, 19 tests passing
+- 2026-04-03: Reskinned tuner UI — custom coral theme, Space Grotesk, fun microcopy, accordion layout, WCAG fixes
+- 2026-04-03: Created `.impeccable.md` — design context for all future UI work
+- 2026-04-03: BLOCKER — output sounds muffled across ~10 test recordings, pipeline quality needs investigation
