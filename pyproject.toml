@@ -1,9 +1,11 @@
 [project]
 name = "phonepod"
-version = "0.1.0b1"
+version = "0.1.0b2"
 description = "Local AI audio restoration. Phone recording → podcast quality."
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Ved", email = "vedant.g26@gmail.com" }]
 keywords = ["audio", "restoration", "podcast", "denoising", "speech-enhancement"]
 classifiers = [
@@ -39,7 +41,9 @@ phonepod = "phonepod.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/vedantggwp/phonepod"
+Repository = "https://github.com/vedantggwp/phonepod"
 Issues = "https://github.com/vedantggwp/phonepod/issues"
+Changelog = "https://github.com/vedantggwp/phonepod/releases"
 
 [build-system]
 requires = ["hatchling"]
