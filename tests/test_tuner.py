@@ -13,7 +13,7 @@ import pytest
 import soundfile as sf
 
 # Generate test fixtures before importing tuner (which imports engine)
-from cleanfeed import _compat as _compat  # noqa: F401
+from phonepod import _compat as _compat  # noqa: F401
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +47,7 @@ class TestCleanAudio:
     """Tests for the clean_audio callback."""
 
     def test_clean_wav_returns_valid_audio(self, test_wav):
-        from cleanfeed.tuner import clean_audio
+        from phonepod.tuner import clean_audio
         result = clean_audio(test_wav)
 
         assert isinstance(result, tuple), f"Expected tuple, got {type(result)}"
@@ -68,7 +68,7 @@ class TestCleanAudio:
         if test_m4a is None:
             pytest.skip("ffmpeg not available")
 
-        from cleanfeed.tuner import clean_audio
+        from phonepod.tuner import clean_audio
         result = clean_audio(test_m4a)
 
         audio_path = result[0]
@@ -78,13 +78,13 @@ class TestCleanAudio:
         assert len(audio) > 0
 
     def test_clean_none_raises(self):
-        from cleanfeed.tuner import clean_audio
+        from phonepod.tuner import clean_audio
         import gradio as gr
         with pytest.raises(gr.Error):
             clean_audio(None)
 
     def test_clean_nonexistent_raises(self):
-        from cleanfeed.tuner import clean_audio
+        from phonepod.tuner import clean_audio
         with pytest.raises(Exception):
             clean_audio("/nonexistent/file.wav")
 
@@ -94,7 +94,7 @@ class TestPreviewSemantic:
     """Tests for the preview_semantic callback."""
 
     def test_preview_after_clean(self, test_wav):
-        from cleanfeed.tuner import clean_audio, preview_semantic
+        from phonepod.tuner import clean_audio, preview_semantic
 
         # Must clean first to populate _denoised_cache
         clean_audio(test_wav)
@@ -112,7 +112,7 @@ class TestPreviewSemantic:
         assert len(audio) > 0
 
     def test_preview_different_params_produce_different_audio(self, test_wav):
-        from cleanfeed.tuner import clean_audio, preview_semantic
+        from phonepod.tuner import clean_audio, preview_semantic
 
         clean_audio(test_wav)
 
@@ -126,8 +126,8 @@ class TestPreviewSemantic:
         assert not np.array_equal(audio_a, audio_b), "Different params produced identical audio"
 
     def test_preview_without_clean_skips(self):
-        from cleanfeed.tuner import preview_semantic, _denoised_cache
-        import cleanfeed.tuner as tuner
+        from phonepod.tuner import preview_semantic, _denoised_cache
+        import phonepod.tuner as tuner
 
         # Temporarily clear cache
         old_cache = tuner._denoised_cache
@@ -143,8 +143,8 @@ class TestPreviewSemantic:
 @pytest.mark.slow
 class TestSavePreset:
     def test_save_creates_file(self, test_wav):
-        from cleanfeed.tuner import clean_audio, save_preset
-        from cleanfeed.profile import PROFILES_DIR
+        from phonepod.tuner import clean_audio, save_preset
+        from phonepod.profile import PROFILES_DIR
 
         clean_audio(test_wav)
         save_preset("tuner-test-save")
@@ -156,7 +156,7 @@ class TestSavePreset:
 
     def test_save_empty_name_raises(self):
         import gradio as gr
-        from cleanfeed.tuner import save_preset
+        from phonepod.tuner import save_preset
 
         with pytest.raises(gr.Error):
             save_preset("")

@@ -8,20 +8,20 @@ from pathlib import Path
 import pytest
 import soundfile as sf
 
-import cleanfeed
+import phonepod
 
 
 class TestPublicAPI:
     def test_version_exists(self):
-        assert hasattr(cleanfeed, "__version__")
-        assert cleanfeed.__version__ == "0.1.0"
+        assert hasattr(phonepod, "__version__")
+        assert phonepod.__version__ == "0.1.0"
 
     def test_exports(self):
-        assert callable(cleanfeed.enhance)
-        assert callable(cleanfeed.Engine)
-        assert callable(cleanfeed.process_audio)
-        assert callable(cleanfeed.shutdown_engine)
-        assert cleanfeed.OUTPUT_SR == 48000
+        assert callable(phonepod.enhance)
+        assert callable(phonepod.Engine)
+        assert callable(phonepod.process_audio)
+        assert callable(phonepod.shutdown_engine)
+        assert phonepod.OUTPUT_SR == 48000
 
     @pytest.mark.slow
     def test_enhance_function(self, test_wav_48k):
@@ -29,7 +29,7 @@ class TestPublicAPI:
             out_path = tmp.name
 
         try:
-            result = cleanfeed.enhance(str(test_wav_48k), out_path)
+            result = phonepod.enhance(str(test_wav_48k), out_path)
             assert result == out_path
             assert Path(out_path).exists()
 
@@ -38,22 +38,22 @@ class TestPublicAPI:
             assert len(audio) > 0
         finally:
             Path(out_path).unlink(missing_ok=True)
-            cleanfeed.shutdown_engine()
+            phonepod.shutdown_engine()
 
 
 class TestCLI:
     def test_help_flag(self):
         result = subprocess.run(
-            [sys.executable, "-m", "cleanfeed.cli", "--help"],
+            [sys.executable, "-m", "phonepod.cli", "--help"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
-        assert "cleanfeed" in result.stdout
+        assert "phonepod" in result.stdout
         assert "input" in result.stdout
 
     def test_missing_input_file(self):
         result = subprocess.run(
-            [sys.executable, "-m", "cleanfeed.cli", "nonexistent.wav", "out.wav"],
+            [sys.executable, "-m", "phonepod.cli", "nonexistent.wav", "out.wav"],
             capture_output=True, text=True,
         )
         assert result.returncode != 0
@@ -64,25 +64,27 @@ class TestCLI:
         fake.write_text("not audio")
 
         result = subprocess.run(
-            [sys.executable, "-m", "cleanfeed.cli", str(fake), "out.wav"],
+            [sys.executable, "-m", "phonepod.cli", str(fake), "out.wav"],
             capture_output=True, text=True,
         )
         assert result.returncode != 0
         assert "unsupported" in result.stderr.lower()
 
     @pytest.mark.slow
-    def test_cli_e2e(self, test_wav_48k):
+    def test_cli_e2e(self, test_wav_48k, monkeypatch, capsys):
+        from phonepod import cli
+
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             out_path = tmp.name
 
         try:
-            result = subprocess.run(
-                [sys.executable, "-m", "cleanfeed.cli", str(test_wav_48k), out_path],
-                capture_output=True, text=True, timeout=120,
-            )
-            assert result.returncode == 0, f"CLI failed: {result.stderr}"
+            monkeypatch.setattr(sys, "argv", ["phonepod", str(test_wav_48k), out_path])
+            cli.main()
+
+            output = capsys.readouterr()
             assert Path(out_path).exists()
-            assert "Duration:" in result.stdout
-            assert "Sample rate:" in result.stdout
+            assert "Duration:" in output.out
+            assert "Sample rate:" in output.out
+            assert output.err == ""
         finally:
             Path(out_path).unlink(missing_ok=True)

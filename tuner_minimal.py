@@ -1,6 +1,6 @@
-"""cleanfeed tuner — drop trash audio, get podcast gold."""
+"""phonepod tuner — drop trash audio, get podcast gold."""
 
-import cleanfeed._compat  # noqa: F401
+import phonepod._compat  # noqa: F401
 
 import random
 import subprocess
@@ -14,8 +14,8 @@ import torchaudio
 from gradio.themes import Base
 from gradio.themes.utils import colors, fonts, sizes
 
-from cleanfeed.engine import Engine, OUTPUT_SR
-from cleanfeed.profile import MasteringParams, Profile, params_from_semantic
+from phonepod.engine import Engine, OUTPUT_SR
+from phonepod.profile import MasteringParams, Profile, params_from_semantic
 
 # ---------------------------------------------------------------------------
 # Theme
@@ -56,7 +56,7 @@ class CleanfeedTheme(Base):
                 "monospace",
             ],
         )
-        self.name = "cleanfeed"
+        self.name = "phonepod"
         super().set(
             # Body
             body_background_fill="#18181b",
@@ -307,6 +307,21 @@ def convert_on_upload(filepath):
     return to_wav(filepath)
 
 
+def _measure(audio: np.ndarray) -> str:
+    """Measure audio and return a formatted metrics string."""
+    import pyloudnorm as pyln
+    audio_64 = audio.astype(np.float64)
+    meter = pyln.Meter(OUTPUT_SR)
+    lufs = meter.integrated_loudness(audio_64)
+    peak = 20 * np.log10(np.abs(audio_64).max() + 1e-10)
+    rms = 20 * np.log10(np.sqrt(np.mean(audio_64 ** 2)) + 1e-10)
+    crest = peak - rms
+
+    lufs_str = f"{lufs:.1f}" if np.isfinite(lufs) else "n/a"
+    status = "on target" if np.isfinite(lufs) and -19 <= lufs <= -16 else "off target"
+    return f"LUFS: {lufs_str} ({status})  |  Peak: {peak:.1f} dB  |  Dynamic range: {crest:.1f} dB"
+
+
 def clean(filepath, progress=gr.Progress()):
     global _denoised
     if not filepath:
@@ -342,29 +357,31 @@ def clean(filepath, progress=gr.Progress()):
 
     out = tempfile.NamedTemporaryFile(suffix=".wav", delete=False).name
     sf.write(out, mastered, OUTPUT_SR)
+    metrics = _measure(mastered)
     progress(1.0, desc=random.choice(_PROGRESS_DONE))
-    return out
+    return out, metrics
 
 
-def remaster(warmth, clarity, punch, de_ess, vol):
+def remaster(warmth, clarity, punch, de_ess, vol, room):
     if _denoised is None:
         raise gr.Error("Clean your audio first, then tweak away.")
     engine = get_engine()
-    engine.set_params(params_from_semantic(warmth, clarity, punch, de_ess, vol))
+    engine.set_params(params_from_semantic(warmth, clarity, punch, de_ess, vol, room))
     mastered = engine.master_only(_denoised.copy())
     out = tempfile.NamedTemporaryFile(suffix=".wav", delete=False).name
     sf.write(out, mastered, OUTPUT_SR)
-    return out
+    metrics = _measure(mastered)
+    return out, metrics
 
 
-def save(name, warmth, clarity, punch, de_ess, vol):
+def save(name, warmth, clarity, punch, de_ess, vol, room):
     if not name or not name.strip():
         raise gr.Error("Give your preset a name first!")
     slug = name.strip().lower().replace(" ", "-")
     engine = get_engine()
-    engine.set_params(params_from_semantic(warmth, clarity, punch, de_ess, vol))
+    engine.set_params(params_from_semantic(warmth, clarity, punch, de_ess, vol, room))
     Profile(name=slug, params=engine.params).save()
-    gr.Info(f'Saved "{slug}"! Use it from CLI: cleanfeed input.m4a out.wav --profile {slug}')
+    gr.Info(f'Saved "{slug}"! Use it from CLI: phonepod input.m4a out.wav --profile {slug}')
 
 
 # ---------------------------------------------------------------------------
@@ -373,8 +390,8 @@ def save(name, warmth, clarity, punch, de_ess, vol):
 
 theme = CleanfeedTheme()
 
-with gr.Blocks(title="cleanfeed", theme=theme, css=_CUSTOM_CSS) as demo:
-    gr.Markdown("# cleanfeed", elem_id="hero-title")
+with gr.Blocks(title="phonepod", theme=theme, css=_CUSTOM_CSS) as demo:
+    gr.Markdown("# phonepod", elem_id="hero-title")
     gr.Markdown("Drop your audio. Get it back sounding good. **Runs 100% on your machine.**", elem_id="hero-sub")
 
     with gr.Row(equal_height=True):
@@ -395,15 +412,29 @@ with gr.Blocks(title="cleanfeed", theme=theme, css=_CUSTOM_CSS) as demo:
 
     clean_btn = gr.Button("Clean it up", variant="primary", size="lg", elem_id="clean-btn")
 
+    metrics_display = gr.Textbox(
+        label="Signal health",
+        interactive=False,
+        visible=False,
+        elem_id="metrics",
+    )
+
     with gr.Accordion("Want more control?", open=False):
         gr.Markdown("*Drag the sliders, hear the difference instantly.*")
-        warmth = gr.Slider(0, 100, 50, step=1, label="Warmth")
-        clarity = gr.Slider(0, 100, 50, step=1, label="Clarity")
-        punch = gr.Slider(0, 100, 50, step=1, label="Punch")
-        de_ess = gr.Slider(0, 100, 50, step=1, label="De-ess")
-        vol = gr.Slider(0, 100, 50, step=1, label="Volume")
+        warmth = gr.Slider(0, 100, 50, step=1, label="Warmth",
+                           info="Adds richness and body")
+        clarity = gr.Slider(0, 100, 50, step=1, label="Clarity",
+                            info="Makes your words cut through")
+        punch = gr.Slider(0, 100, 50, step=1, label="Punch",
+                          info="Tightens dynamics")
+        de_ess = gr.Slider(0, 100, 50, step=1, label="De-ess",
+                           info="Softens sharp s and sh sounds")
+        vol = gr.Slider(0, 100, 50, step=1, label="Volume",
+                        info="Overall loudness. 50 = podcast standard")
+        room = gr.Slider(0, 100, 30, step=1, label="Room",
+                         info="Studio ambience. 0 = bone dry, 30 = subtle booth, 70+ = noticeable")
 
-        sliders = [warmth, clarity, punch, de_ess, vol]
+        sliders = [warmth, clarity, punch, de_ess, vol, room]
 
         gr.Markdown("---")
         with gr.Row(elem_id="preset-row"):
@@ -419,10 +450,15 @@ with gr.Blocks(title="cleanfeed", theme=theme, css=_CUSTOM_CSS) as demo:
     # Wiring
     original.upload(fn=convert_on_upload, inputs=original, outputs=original)
     original.stop_recording(fn=convert_on_upload, inputs=original, outputs=original)
-    clean_btn.click(fn=clean, inputs=original, outputs=cleaned)
+
+    clean_btn.click(
+        fn=clean,
+        inputs=original,
+        outputs=[cleaned, metrics_display],
+    ).then(fn=lambda: gr.Textbox(visible=True), outputs=metrics_display)
 
     for s in sliders:
-        s.release(fn=remaster, inputs=sliders, outputs=cleaned)
+        s.release(fn=remaster, inputs=sliders, outputs=[cleaned, metrics_display])
 
     save_btn.click(fn=save, inputs=[preset_name] + sliders)
 

@@ -7,15 +7,15 @@ import pytest
 import soundfile as sf
 import torch
 
-import cleanfeed
+import phonepod
 
-ENGINE_OUTPUT_SR = cleanfeed.OUTPUT_SR
+ENGINE_OUTPUT_SR = phonepod.OUTPUT_SR
 
 
 @pytest.fixture(scope="module")
 def engine():
     """Shared engine instance for the module (models are expensive to load)."""
-    eng = cleanfeed.Engine()
+    eng = phonepod.Engine()
     yield eng
     del eng
     if torch.backends.mps.is_available():

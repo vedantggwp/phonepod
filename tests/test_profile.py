@@ -5,16 +5,21 @@ from pathlib import Path
 
 import pytest
 
-from cleanfeed.profile import MasteringParams, Profile, params_from_semantic
+from phonepod.profile import MasteringParams, Profile, params_from_semantic
 
 
 class TestMasteringParams:
     def test_defaults(self):
         p = MasteringParams()
         assert p.hpf_cutoff_hz == 80.0
+        assert p.mud_gain_db == -2.5
+        assert p.box_gain_db == -4.0
+        assert p.nasal_gain_db == -3.0
+        assert p.deess_freq_hz == 6500.0
+        assert p.deess_q == 1.5
         assert p.lufs_target == -18.0
         assert p.limiter_ceiling_db == -1.5
-        assert p.comp1_ratio == 2.0
+        assert p.comp1_ratio == 1.8
 
     def test_immutable(self):
         p = MasteringParams()
@@ -30,21 +35,32 @@ class TestMasteringParams:
 class TestSemanticMapping:
     def test_defaults_at_50(self):
         p = params_from_semantic(50, 50, 50, 50, 50)
-        assert p.presence_gain_db == 2.5
-        assert p.deess_gain_db == -4.0
-        assert p.lufs_target == -18.0
+        defaults = MasteringParams()
+        assert p.mud_gain_db == defaults.mud_gain_db
+        assert p.box_gain_db == defaults.box_gain_db
+        assert p.nasal_gain_db == defaults.nasal_gain_db
+        assert p.comp1_threshold_db == defaults.comp1_threshold_db
+        assert p.comp1_ratio == defaults.comp1_ratio
+        assert p.comp2_threshold_db == defaults.comp2_threshold_db
+        assert p.comp2_ratio == defaults.comp2_ratio
+        assert p.deess_freq_hz == defaults.deess_freq_hz
+        assert p.deess_gain_db == defaults.deess_gain_db
+        assert p.deess_q == defaults.deess_q
+        assert p.lufs_target == defaults.lufs_target
+        assert p.limiter_ceiling_db == defaults.limiter_ceiling_db
 
     def test_warmth_high(self):
+        baseline = params_from_semantic(50, 50, 50, 50, 50)
         p = params_from_semantic(warmth=100, clarity=50, compression=50, de_ess=50, loudness=50)
-        # High warmth = less low-mid cut (closer to 0) + less air
-        assert p.low_mid_gain_db > -3.0  # less cut than default
-        assert p.air_gain_db < 2.0       # less air than default
+        # High warmth = shallower subtractive cuts.
+        assert p.mud_gain_db > baseline.mud_gain_db
+        assert p.box_gain_db > baseline.box_gain_db
 
     def test_warmth_low(self):
+        baseline = params_from_semantic(50, 50, 50, 50, 50)
         p = params_from_semantic(warmth=0, clarity=50, compression=50, de_ess=50, loudness=50)
-        # Low warmth = more low-mid cut + more air
-        assert p.low_mid_gain_db < -3.0
-        assert p.air_gain_db > 2.0
+        assert p.mud_gain_db < baseline.mud_gain_db
+        assert p.box_gain_db < baseline.box_gain_db
 
     def test_compression_high(self):
         p = params_from_semantic(warmth=50, clarity=50, compression=100, de_ess=50, loudness=50)
@@ -87,7 +103,7 @@ class TestProfile:
         assert data["params"]["hpf_cutoff_hz"] == 80.0
 
     def test_load_by_name(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("cleanfeed.profile.PROFILES_DIR", tmp_path)
+        monkeypatch.setattr("phonepod.profile.PROFILES_DIR", tmp_path)
 
         profile = Profile(name="my-voice", params=MasteringParams(lufs_target=-16.0))
         profile.save(path=tmp_path / "my-voice.json")
@@ -100,7 +116,7 @@ class TestProfile:
             Profile.load_by_name("nonexistent-profile-xyz")
 
     def test_list_profiles(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("cleanfeed.profile.PROFILES_DIR", tmp_path)
+        monkeypatch.setattr("phonepod.profile.PROFILES_DIR", tmp_path)
 
         Profile(name="a", params=MasteringParams()).save(path=tmp_path / "a.json")
         Profile(name="b", params=MasteringParams()).save(path=tmp_path / "b.json")
@@ -112,7 +128,7 @@ class TestProfile:
 class TestEngineParams:
     @pytest.mark.slow
     def test_engine_accepts_params(self):
-        from cleanfeed import Engine
+        from phonepod import Engine
         params = MasteringParams(lufs_target=-16.0, hpf_cutoff_hz=120.0)
         engine = Engine(params=params)
         assert engine.params.lufs_target == -16.0
@@ -120,7 +136,7 @@ class TestEngineParams:
 
     @pytest.mark.slow
     def test_set_params_without_reload(self):
-        from cleanfeed import Engine
+        from phonepod import Engine
         engine = Engine()
         original_lufs = engine.params.lufs_target
 
@@ -135,7 +151,7 @@ class TestEngineParams:
         import numpy as np
         import soundfile as sf
         import torch
-        from cleanfeed import Engine
+        from phonepod import Engine
 
         engine = Engine()
 

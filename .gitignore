@@ -19,10 +19,17 @@ checkpoints/
 # Audio files (generated)
 benchmark_outputs/
 *.wav
+ab_*.wav
 
 # Keep demo audio
 !demo/before.wav
 !demo/after.wav
+
+# Personal test recordings
+recording.m4a
+
+# Generated reports
+audit_report.html
 
 # Test/research artifacts
 .pytest_cache/

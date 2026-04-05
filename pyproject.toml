@@ -1,13 +1,13 @@
 [project]
-name = "cleanfeed"
-version = "0.1.0"
+name = "phonepod"
+version = "0.1.0b1"
 description = "Local AI audio restoration. Phone recording → podcast quality."
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Ved", email = "vedant.g26@gmail.com" }]
 keywords = ["audio", "restoration", "podcast", "denoising", "speech-enhancement"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
@@ -35,11 +35,11 @@ dependencies = [
 ui = ["gradio>=6.10.0"]
 
 [project.scripts]
-cleanfeed = "cleanfeed.cli:main"
+phonepod = "phonepod.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ved-labs/cleanfeed"
-Issues = "https://github.com/ved-labs/cleanfeed/issues"
+Homepage = "https://github.com/vedantggwp/phonepod"
+Issues = "https://github.com/vedantggwp/phonepod/issues"
 
 [build-system]
 requires = ["hatchling"]

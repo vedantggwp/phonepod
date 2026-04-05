@@ -1,8 +1,8 @@
-"""Shared fixtures for cleanfeed tests."""
+"""Shared fixtures for phonepod tests."""
 
+import importlib
 import os
 import subprocess
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +11,26 @@ import soundfile as sf
 
 PROJECT_ROOT = Path(__file__).parent.parent
 RECORDING = PROJECT_ROOT / "recording.m4a"
+TEST_PROFILES_DIR = PROJECT_ROOT / ".test-profiles"
+
+
+# Keep DeepFilterNet on the existing cached model, but disable its default file
+# logger so engine-backed tests can run inside the sandbox.
+_engine_module = importlib.import_module("phonepod.engine")
+_original_init_df = _engine_module.init_df
+
+
+def _init_df_without_file_logging(*args, **kwargs):
+    kwargs.setdefault("log_file", None)
+    return _original_init_df(*args, **kwargs)
+
+
+_engine_module.init_df = _init_df_without_file_logging
+
+# Redirect profile persistence to a writable project-local directory.
+_profile_module = importlib.import_module("phonepod.profile")
+TEST_PROFILES_DIR.mkdir(exist_ok=True)
+_profile_module.PROFILES_DIR = TEST_PROFILES_DIR
 
 
 def pytest_configure(config):

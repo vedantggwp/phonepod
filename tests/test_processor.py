@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 import soundfile as sf
 
-import cleanfeed
-from cleanfeed.processor import process_audio, shutdown_engine
+import phonepod
+from phonepod.processor import process_audio, shutdown_engine
 
 
 @pytest.mark.slow
@@ -31,7 +31,7 @@ class TestProcessor:
         try:
             process_audio(str(test_wav_48k), out_path)
             audio, sr = sf.read(out_path, dtype="float32")
-            assert sr == cleanfeed.OUTPUT_SR
+            assert sr == phonepod.OUTPUT_SR
             assert audio.ndim == 1  # mono
         finally:
             Path(out_path).unlink(missing_ok=True)
@@ -47,7 +47,7 @@ class TestProcessor:
         try:
             process_audio(str(recording_wav), out_path)
             audio, sr = sf.read(out_path, dtype="float32")
-            assert sr == cleanfeed.OUTPUT_SR
+            assert sr == phonepod.OUTPUT_SR
             assert audio.ndim == 1
             assert len(audio) > 0
         finally:

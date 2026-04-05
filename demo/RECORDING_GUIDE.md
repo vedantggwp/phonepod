@@ -2,7 +2,7 @@
 
 ## What to record
 
-Record this script on your phone (Voice Memos app). Don't try to sound polished — the whole point is that the raw recording sounds rough and cleanfeed makes it broadcast-ready.
+Record this script on your phone (Voice Memos app). Don't try to sound polished — the whole point is that the raw recording sounds rough and phonepod makes it broadcast-ready.
 
 ## Setup (maximize the "before" contrast)
 
@@ -34,10 +34,10 @@ Key points to hit:
 - But nothing combines both into one tool that just works
 - And almost everything requires uploading your audio to someone's server
 
-### Chapter 3: What cleanfeed does (15-20 seconds)
+### Chapter 3: What phonepod does (15-20 seconds)
 
 Key points to hit:
-- cleanfeed is a single command: you give it a phone recording, it gives you back podcast-quality audio
+- phonepod is a single command: you give it a phone recording, it gives you back podcast-quality audio
 - Five stages: noise suppression, speech enhancement, EQ and compression, loudness normalization, limiting
 - Everything runs locally on your machine — nothing leaves your computer
 - Takes about 7 seconds for a 2-minute recording
@@ -46,7 +46,7 @@ Key points to hit:
 
 Key points to hit:
 - This audio you're hearing right now? It was recorded on a phone
-- Then I ran `cleanfeed` on it
+- Then I ran `phonepod` on it
 - That's it
 
 ---
@@ -61,8 +61,8 @@ Save the voice memo as `demo_raw.m4a`, then:
 # Copy to the project
 cp demo_raw.m4a demo/before.m4a
 
-# Run cleanfeed
-cleanfeed demo/before.m4a demo/after.wav
+# Run phonepod
+phonepod demo/before.m4a demo/after.wav
 
 # Listen to both
 open demo/before.m4a demo/after.wav
