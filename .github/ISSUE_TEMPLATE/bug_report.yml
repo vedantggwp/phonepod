@@ -1,0 +1,58 @@
+name: Bug Report
+description: Report reproducible phonepod behavior that is not working
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Include the command or API call and a non-sensitive sample description.
+      placeholder: |
+        1. Run ...
+        2. Use input format ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python Version
+      placeholder: "3.11, 3.12, 3.13"
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "macOS, Linux"
+  - type: input
+    id: format
+    attributes:
+      label: Input Format
+      placeholder: "m4a, wav, mp3, flac"
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy Check
+      options:
+        - label: I have not included private recordings, credentials, or proprietary audio.
+          required: true
