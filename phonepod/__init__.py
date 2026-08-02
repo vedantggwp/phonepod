@@ -18,7 +18,9 @@ from .engine import Engine, OUTPUT_SR
 from .processor import process_audio, shutdown_engine
 from .profile import MasteringParams, Profile, params_from_semantic
 
-__version__ = "0.1.0"
+# Single source of truth for the version — pyproject.toml reads this string
+# (see [tool.hatch.version]). Bump it here and nowhere else.
+__version__ = "0.1.0b2"
 __all__ = [
     "Engine", "enhance", "process_audio", "shutdown_engine",
     "OUTPUT_SR", "MasteringParams", "Profile", "params_from_semantic",

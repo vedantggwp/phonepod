@@ -6,7 +6,8 @@ Local AI audio restoration. Phone recording → podcast quality.
 
 phonepod transforms noisy voice memos into broadcast-ready audio. It combines neural noise suppression (DeepFilterNet3 + MossFormer2) with a subtractive DSP mastering chain - all running locally on CPU. No cloud, no uploads, no subscription.
 
-> Status: `0.1.0-beta.1` - works well, API may change. Feedback welcome.
+> Status: **beta** - works well, API may change. Feedback welcome.
+> See [releases](https://github.com/vedantggwp/phonepod/releases) for the current version.
 
 ## Before / After
 

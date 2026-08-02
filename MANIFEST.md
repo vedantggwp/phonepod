@@ -53,6 +53,9 @@
 - `diagnose_muffled.py` - Diagnostic script: isolates each pipeline stage into separate WAV files
 
 ## Recent Changes
+- 2026-08-02: Version is now single-sourced from `phonepod/__init__.py` (`pyproject.toml` uses hatchling `dynamic = ["version"]`). Previously pyproject/`__init__`/README carried three copies that had drifted to 0.1.0b2 / 0.1.0 / 0.1.0-beta.1
+- 2026-08-02: Rewrote `docs/architecture.md` — was still describing the pre-Sprint-2.5 additive EQ chain, 5 stages, ClearVoice file-I/O mode, and the flat root modules
+- 2026-08-02: Rewrote `CLAUDE.md` — was describing the abandoned resemble-enhance/OLA-chunking/MPS architecture
 - 2026-04-04: RESOLVED muffled audio blocker - root cause was mastering chain crushing dynamics (LUFS overshooting -18 by 3.6dB, crest halved). Fixed with iterative LUFS normalization, gentler compression defaults
 - 2026-04-04: Added noise gate (Pedalboard NoiseGate, -50dB threshold) - silences artifacts between speech
 - 2026-04-04: Added studio room reverb (Pedalboard Reverb, 3% wet default) - subtle early reflections

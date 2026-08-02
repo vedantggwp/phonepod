@@ -1,5 +1,6 @@
 """E2E tests for the public API and CLI."""
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -14,7 +15,13 @@ import phonepod
 class TestPublicAPI:
     def test_version_exists(self):
         assert hasattr(phonepod, "__version__")
-        assert phonepod.__version__ == "0.1.0"
+        assert isinstance(phonepod.__version__, str)
+        # Deliberately not asserting a literal: __version__ is the single source
+        # of truth that pyproject.toml reads, so a hardcoded copy here would just
+        # go stale on every bump. Check it stays a valid PEP 440 version instead.
+        assert re.fullmatch(r"\d+\.\d+\.\d+(?:[ab]|rc|\.post|\.dev)?\d*", phonepod.__version__), (
+            f"__version__ is not a valid PEP 440 version: {phonepod.__version__!r}"
+        )
 
     def test_exports(self):
         assert callable(phonepod.enhance)

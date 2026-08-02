@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **phonepod** — a local, privacy-first audio restoration pipeline. Phone recording in, podcast-quality WAV out. Two neural models (noise suppression + speech enhancement) followed by a DSP mastering chain, all running on CPU on the user's machine.
 
-Shipped as a pip-installable package (`pip install phonepod`) with a CLI, a Python API, and two Gradio UIs. Currently `0.1.0b2` / beta.
+Shipped as a pip-installable package (`pip install phonepod`) with a CLI, a Python API, and two Gradio UIs. Currently in beta — the version lives in `phonepod/__init__.py`.
 
-Earlier docs (`docs/architecture.md`, `docs/knowledge-base.md`, `JOURNEY.md`) call the project "Project Resonance" — that was the pre-rename working title. Same project.
+Earlier docs (`docs/knowledge-base.md`, `JOURNEY.md`) call the project "Project Resonance" — that was the pre-rename working title. Same project.
 
 ## Non-negotiables
 
@@ -48,7 +48,7 @@ Earlier docs (`docs/architecture.md`, `docs/knowledge-base.md`, `JOURNEY.md`) ca
 | `docs/benchmarks.md` | Decision record: DeepFilterNet3 vs DPDFNet, ClearVoice file-I/O vs numpy mode. Numbers, not opinions. |
 | `docs/knowledge-base.md` | Model evaluations, professional podcast chain reference, compatibility notes, parameter guide. |
 | `docs/references.md` | 30+ models/repos/papers evaluated. |
-| `docs/architecture.md` | System design. **Partly stale** — its stage-3 EQ listing still shows the old additive chain (presence/air boosts) that subtractive EQ replaced. |
+| `docs/architecture.md` | System design: tech stack, the 6-stage pipeline with its default DSP constants, and the per-module contracts. The reference for module boundaries. |
 | `docs/system-architecture.html` | Visual architecture diagram. |
 | `TODOS.md` | Sprint plan 1–5, dependency graph, research findings. The live roadmap. |
 | `MANIFEST.md` | File-by-file inventory + dated changelog. **Update this when adding files.** |
@@ -135,7 +135,7 @@ ffmpeg is a hard external requirement for any non-WAV input (`brew install ffmpe
 
 - **Import order.** `_compat` must be imported before anything that pulls in DeepFilterNet. `phonepod/__init__.py` handles this; preserve it, and keep the `# noqa: F401`.
 - **`numpy<2.0` is pinned.** Model deps still require NumPy 1.x. Don't relax it casually.
-- **Version lives in three places and they currently disagree:** `pyproject.toml` (`0.1.0b2`), `phonepod/__init__.py` (`__version__ = "0.1.0"`, asserted by `tests/test_public_api.py`), and README (`0.1.0-beta.1`). Bumping means updating all of them plus the test.
+- **Version has exactly one home: `phonepod/__init__.py`.** `pyproject.toml` declares `dynamic = ["version"]` and hatchling reads `__version__` from that file by regex (it is never imported at build time, so the build doesn't need torch). To bump, edit `__init__.py` and nothing else — don't reintroduce a literal `version =` in `pyproject.toml`, and don't hardcode the version in README or tests. These used to be three copies that drifted apart.
 - **`*.wav` is gitignored** (with a `demo/` exception), as is `recording.m4a`. Never commit generated audio, model caches, or personal recordings.
 - **`Engine` docstring says 5 stages, the module docstring says 6.** The code runs 6 (reverb was added later). Cosmetic, but don't let it mislead you.
 - **`master_only()` duplicates the LUFS loop from `enhance()`.** If you change loudness behavior, change both.

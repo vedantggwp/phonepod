@@ -1,6 +1,6 @@
 [project]
 name = "phonepod"
-version = "0.1.0b2"
+dynamic = ["version"]
 description = "Local AI audio restoration. Phone recording → podcast quality."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -48,6 +48,11 @@ Changelog = "https://github.com/vedantggwp/phonepod/releases"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# Single source of truth for the version. Read from phonepod/__init__.py by
+# regex (the file is never imported at build time, so torch is not required).
+[tool.hatch.version]
+path = "phonepod/__init__.py"
 
 [dependency-groups]
 dev = [
